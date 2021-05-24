@@ -10,12 +10,11 @@ Este tipo de arquivo é utilizado nos modelos do setor elétrico brasileiro
 Autor   : Nelson Rossi Bittencourt
 Versão  : 0.1
 Licença : MIT
-Dependências: numpy, os e openpyxl (se desejar ler dados do Excel).
+Dependências: openpyxl (se desejar ler dados do Excel).
 ******************************************************************************
 """
-import numpy as np
-from openpyxl import load_workbook
 
+from openpyxl import load_workbook
 
 # Classe que conterá um histórico de vazões.
 # anoInicial : deverá, obrigatoriamente, ser fornecido pelo usuário e corresponderá ao primeiro ano do histórico;

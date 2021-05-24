@@ -76,6 +76,6 @@ if __name__ == '__main__':
         pVE.mudaVazao(meuHistVazoes,1,m,2022,mltCamargos)
     
     pVE.salvaArquivo(
-                    nomeArquivo="tests/vazoes_camargos.txt",
+                    nomeArquivo="tests/vazoes_ex_04.txt",
                     vazoesHist=meuHistVazoes,
                     tipoArquivo='vazEdit')
