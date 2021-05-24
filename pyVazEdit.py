@@ -3,18 +3,16 @@
 """
 ******************************************************************************
 Lê e escreve dados em arquivos binários do tipo 'vazoes.dat'.
-Este tipo de arquivo é utilizado nos modelos 'Newave', 'Decomp', 'Gevazp' e 
-'Dessem'.
+Este tipo de arquivo é utilizado nos modelos do setor elétrico brasileiro 
+('Newave', 'Decomp', 'Gevazp' e 'Dessem').
               
 
 Autor   : Nelson Rossi Bittencourt
 Versão  : 0.1
 Licença : MIT
-Dependências: numpy e openpyxl (se desejar ler dados do Excel).
+Dependências: numpy, os e openpyxl (se desejar ler dados do Excel).
 ******************************************************************************
 """
-
-from os import scandir
 import numpy as np
 from openpyxl import load_workbook
 
@@ -34,7 +32,7 @@ class historicoVazoes:
 
 def lerVazoesExcel(nomeArquivoExcel, linIni, colIni, linFim,colFim):
     """
-    Lê valores de vazão de uma planilha Excel (xlsx) para atualizar arquivo binário de vazões.
+    Lê valores de vazão de uma planilha Excel (xlsx) para atualizar um arquivo binário de vazões.
     A plalinha deverá conter:
 
         Primeira linha (linIni) - meses/anos das vazões a serem atualizadas/inseridas;
@@ -43,7 +41,7 @@ def lerVazoesExcel(nomeArquivoExcel, linIni, colIni, linFim,colFim):
 
         Exemplo:
 
-        Posto   Jan/2018    Fev/2018    Mar/2018
+        Posto   Jan/2020    Fev/2020    Mar/2020
             1        100         200         300
           320        500         600         700
         
@@ -62,11 +60,10 @@ def lerVazoesExcel(nomeArquivoExcel, linIni, colIni, linFim,colFim):
     Retorno
     -------
 
-    Dicionário contendo como chave o número do posto e como valor um lista com sub-lista na forma
+    Dicionário contendo como chave o número do posto e como valor uma lista com sub-listas na forma
     [mes ano valor].
 
     """
-    
     outPut = {}                         # Dicionário de saída
     meses = []                          # Lista de meses (lidos da coluna de cabeçalho do Excel)
     anos = []                           # Lista de anos (lidos da coluna de cabeçalho do Excel)
@@ -84,7 +81,7 @@ def lerVazoesExcel(nomeArquivoExcel, linIni, colIni, linFim,colFim):
         meses.append(data.month)
         anos.append(data.year)
 
-    # Lê os dados e aloca na variáve de saída.
+    # Lê os dados e aloca na variável de saída.
     for linha in range(linIni+1,linFim+1):
         posto = ws.cell(linha,colIni).value            
         listaDados = []
@@ -101,6 +98,7 @@ def lerVazoesExcel(nomeArquivoExcel, linIni, colIni, linFim,colFim):
     return outPut
 
 
+# TODO: Inserir código para ler do formato 'vazEdit' ou 'csv' ?
 def leVazoes(nomeArquivo, anoInicial=1931, numPostos=320):
     """
     Lê todas as vazões de um arquivo binário.
@@ -108,7 +106,7 @@ def leVazoes(nomeArquivo, anoInicial=1931, numPostos=320):
     Argumentos
     ----------
 
-    nomeArquivo : nome do arquivo binário de vazões no formato ONS;
+    nomeArquivo : nome do arquivo binário de vazões no formato CEPEL/ONS;
 
     anoInicial : (Opcional) ano inicial do histórico de vazões. Default: 1931.
 
@@ -123,23 +121,22 @@ def leVazoes(nomeArquivo, anoInicial=1931, numPostos=320):
 
     """
 
-    # Contador do número de registros para 
+    # Contador do número de registros.
     numRegistros = 0        
 
-    # Cria instância da classe 'historicoVazoes'.
-    localVazoesLidas = historicoVazoes()
-    
+    # Índice do posto.
+    posto = 1
+
+    # Cria uma instância da classe 'historicoVazoes' e atribui valores iniciais.
+    localVazoesLidas = historicoVazoes()    
     localVazoesLidas.anoInicial = anoInicial
     localVazoesLidas.numPostos = numPostos
 
     # Cria listas vazias para conter as vazões.
     for i in range(1,numPostos+1):        
         localVazoesLidas.valores[i] = []
-
-    # Contador do número de postos.
-    posto = 1
-
-    # Abre o arquivo e aloca seus dados na lista.
+    
+    # Abre o arquivo binário e aloca seus dados nas listas correspondentes.
     try:        
         with open(nomeArquivo, 'rb') as f:
             while (byte1:=f.read(4)):                                
@@ -147,30 +144,30 @@ def leVazoes(nomeArquivo, anoInicial=1931, numPostos=320):
                 tmp = int.from_bytes(byte1,'little')                
                 localVazoesLidas.valores[posto].append(tmp)
                 posto = posto + 1
-                if (posto==(numPostos+1)):
+                if (posto==(numPostos+1)): 
                     posto = 1             
     except:
-        print("Erro ao abrir arquivo!")
+        raise NameError("Erro ao abrir arquivo binário {}.".format(nomeArquivo))
 
-    # Calcula o ano final do arquivo.
+    # Calcula o ano final do arquivo e atribui ao objeto tipo 'historicoVazoes'.
     anoFinal = int((anoInicial + (numRegistros/(12*numPostos)))-1)
     localVazoesLidas.anoFinal = anoFinal
     
     return localVazoesLidas
 
 
-def salvaArquivo(nomeArquivo,vazoes, tipo='binario'):
+def salvaArquivo(nomeArquivo,vazoesHist, tipoArquivo='binario'):
     """
-    Salva os dados binários de vazão no arquivo especificado.
+    Salva os dados binários de vazão no arquivo especificado, utilizando um dos formatos válidos.
 
     Argumentos
     ----------
     
     nomeArquivo : nome do arquivo a salvar;
 
-    vazoes: objeto do tipo 'historicoVazoes' com os dados a serem salvos;
+    vazoesHist: objeto do tipo 'historicoVazoes' com os dados a serem salvos;
 
-    tipo : (Opcional) especifica o tipo de arquivo a salvar. Default:'binario'
+    tipoArquivo : (Opcional) especifica o tipo de arquivo a salvar. Default:'binario'
          Existem três tipos possíveis:
 
             'binário' - arquivo de vazões binário no formato dos modelos do setor elétrico;
@@ -185,55 +182,61 @@ def salvaArquivo(nomeArquivo,vazoes, tipo='binario'):
 
     Nenhum.
 
-    """
+    """        
 
     # Número de registros para cada posto de vazão.
-    n = len(vazoes.valores[1])
+    nr = len(vazoesHist.valores[1])
 
-    if (tipo=='binario'):
-        #  Salva as vazões no arquivo binário.
+    if (tipoArquivo=='binario'):
+        #  Tenta salvar as vazões em um arquivo binário.
         try:        
             with open(nomeArquivo, 'wb') as f:
-                for n1 in range(0,n):
-                    for posto in range(1,vazoes.numPostos+1):
-                        f.write(vazoes.valores[posto][n1].to_bytes(4,'little'))               
+                for n1 in range(0,nr):
+                    for posto in range(1,vazoesHist.numPostos+1):
+                        f.write(vazoesHist.valores[posto][n1].to_bytes(4,'little'))               
                 
         except:
-            print("Erro ao salvar arquivo!")
+            raise NameError("Erro ao tentar salvar o arquivo binário: {}".format(nomeArquivo))
 
 
-    elif (tipo=='vazEdit' or 'tipo=csv'):
+    # Tenta salvar as vazões em um arquivo 'vazEdit' ou 'csv'
+    elif (tipoArquivo=='vazEdit' or tipoArquivo=='csv'):
         try:
-
-            if (tipo == 'csv'):
-                sep = ','
-                adjusts = [0,0,0]
+            # Determina o separador (sep) e o número mínimo de caracteres de cada campo (adj).
+            # Como são três campos a salvar(número do posto, ano e vazões), adj deve ter 3 valores.
+            if (tipoArquivo == 'csv'):
+                sep = ','               # Se desejar, pode alterar sep de ',' para ';'
+                adj = [0,0,0]           # No formato csv, não existe a necessidade de strings com tamanho mínimo
             else:
                 sep = ''
-                adjusts = [3,6,5]
+                adj = [3,6,5]           # No formato 'vazEdit', estes são os valores para manter a compatibilidade
 
             with open(nomeArquivo, 'w') as f:
-                for posto in range(1,vazoes.numPostos+1):
-                    ano = vazoes.anoInicial
-                    sPosto = str(posto).rjust(adjusts[0])                    
-                    for n1 in range(0,n,12):
-                        sVazoes = ''
-                        valores = vazoes.valores[posto][n1:n1+12]
-                        for m in range(0,12):                            
-                            sVazoes = sVazoes + str(valores[m]).rjust(adjusts[1]) + sep
+                for posto in range(1,vazoesHist.numPostos+1):               # Loop para o número de postos
+                    ano = vazoesHist.anoInicial                     
+                    sPosto = str(posto).rjust(adj[0])
+                    if (sum(vazoesHist.valores[posto])>0):                  # Somente salva postos com valor
+                        for n1 in range(0,nr,12):                           # Loop para o número de registros, com passo de 12 meses
+                            sVazoes = ''
+                            valores = vazoesHist.valores[posto][n1:n1+12]
+                            for m in range(0,12):                           # Loop para 12 meses
+                                sVazoes = sVazoes + str(valores[m]).zfill(2).rjust(adj[1]) + sep
                         
-                        sAno = str(ano).rjust(adjusts[2])
-                        saida = sPosto + sep +  sAno + sep + sVazoes
-                        f.write(saida+'\n')               
-                        ano = ano + 1
+                            sAno = str(ano).rjust(adj[2])
+                            saida = sPosto + sep +  sAno + sep + sVazoes
+                            f.write(saida+'\n')               
+                            ano = ano + 1
                 
         except:
-            print("Erro ao salvar arquivo!")
+    
+            raise NameError("Erro ao salvar arquivo do tipo {} : {}".format(tipoArquivo, nomeArquivo))
+    else:
+        raise NameError("Tipo de arquivo a salvar inválido!\nUtilize 'binario', 'vazEdit' ou 'csv'.")
 
 
-def mudaVazao(Vazoes, posto,mes,ano,valor):
+def mudaVazao(vazoesHist, posto, mes, ano, novaVazao):
     """
-    Altera ou inclui valores de um objeto 'historicoVazoes' para posterior uso/salvamento.
+    Altera/inclui valores de/em um objeto 'historicoVazoes' para posterior uso/salvamento.
     
     Caso o ano especificado não faça parte do horizonte, serão incluídos vetores com valor zero
     de modo a manter o arquivo compatível.
@@ -241,81 +244,53 @@ def mudaVazao(Vazoes, posto,mes,ano,valor):
     Argumentos
     ----------
 
-    """
-    # Ano inicial inferior ao mínimo do histórico.
-    if ano<Vazoes.anoInicial:
-        raise NameError("Você não pode alterar vazões de anos anteriores a {}.".format(Vazoes.anoInicial))
+    vazoesHist : histórico de vazões previamente lido/criado/alterado. Deve ser um objeto tipo 'historicoVazoes';
 
-    # Converte o valor para inteiro.
-    valorI = int(valor)
+    posto : número do posto de vazão a processar a alteração/inclusão. Deve ser um número inteiro e respeitar o número
+        máximo de postos do arquivo;
+
+    mes : número do mês a alterar/inserir. Inteiro;
+
+    ano : número do mês a alterar/inserir. Inteiro;
+
+    novaVazao : valor da vazão a alterar/inserir. Valores não inteiros serão convertidos automaticamente.
+
+
+    Retorno
+    -------
+
+    Nenhum.
+
+    """
+
+    # Erro se o ano inicial for inferior ao mínimo do histórico.
+    if ano<vazoesHist.anoInicial:
+        raise NameError("Você não pode alterar vazões de anos anteriores a {}.".format(vazoesHist.anoInicial))
+
+    # Converte o valor da vazão para inteiro.
+    novaVazaoI = int(novaVazao)
 
     # Posição do arquivo a escrever o(s) valor(es).
-    pos = (mes-1)+(ano-Vazoes.anoInicial)*12
+    pos = (mes-1)+(ano-vazoesHist.anoInicial)*12
 
-    # Altera valor existente no histórico.
-    if ano>=Vazoes.anoInicial and ano<=Vazoes.anoFinal:
+    # Altera um valor de vazão já existente no histórico.
+    if ano>=vazoesHist.anoInicial and ano<=vazoesHist.anoFinal:
         if ((mes-1) in range(0,12)):            
-            Vazoes.valores[posto][pos] = valorI
+            vazoesHist.valores[posto][pos] = novaVazaoI
             
     # Insere novos anos no histórico.
-    if ano>Vazoes.anoFinal:
+    if ano>vazoesHist.anoFinal:        
+        anosInserir = int(ano - vazoesHist.anoFinal)                    # número de anos a inserir
+        valoresAno = [0] * (12 * anosInserir)                           # vetor de 12 meses x número de anos a inserir
+        vazoesHist.anoFinal = vazoesHist.anoFinal + anosInserir         # altera o ano final do histórico
         
-        anosInserir = int(ano - Vazoes.anoFinal)              # número de anos a inserir
-        valoresAno = [0] * (12 * anosInserir)                 # vetor de 12 meses x número de anos a inserir
-        Vazoes.anoFinal = Vazoes.anoFinal + anosInserir       # altera o ano final do histórico
-        
-        for p in range(1,Vazoes.numPostos+1):
-                Vazoes.valores[p].extend(valoresAno)        
-        
-        Vazoes.valores[posto][pos] = valorI
+        for p in range(1,vazoesHist.numPostos+1):
+                vazoesHist.valores[p].extend(valoresAno)                
+        vazoesHist.valores[posto][pos] = novaVazaoI
 
 
 
-if __name__ == '__main__':
 
-    # Lê o arquivo binário para um objeto tipo 'historicoVazoes' (ver definição da classe).
-    vazoesLidas = leVazoes(nomeArquivo='VAZOES.DAT', anoInicial=1931, numPostos=320)
-    
-    # Teste para 'clonar classe'
-    # vazoesEspelho = copy.deepcopy(vazoesLidas)
-   
-    # Se desejar, pode utilizar algumas informações do objeto 'historicoVazoes' ou
-    # até mesmo, utilizar seu algoritmo para alterar os valores do dicionário de vazões.
-    # Exemplos de uso direto:
-    # a) ano_inicial = vazoesLidas.anoFinal
-    # b) ano_final = vazoesLidas.anoFinal
-    # c) numero_postos = vazoesLidas.numPostos
-    
-    # d) no caso de acesso direto ao dicionário, o valores são sequencias por posto são sequenciais.
-    # Para calcular a posição de um mês/ano use a expressão para cada posto, use a expressão:
-    # pos = (mes-1)+12*(ano-ano inicial do histórico)*12
-    # Exemplos:
-    # vazaoCamargosJan1931 = vazoesLidas.valores[1][0] 
-    # vazaoCamargosDez1931 = vazoesLidas.valores[1][11]
-    # vazaoCamargosJan1932 = vazoesLidas.valores[1][12]
-        
-    # Exemplo 1: Alterando o valore de Jan/1931 do posto Camargos.
-    # Utilizando a rotina 'mudaVazao', a posição sequencial é calculada automaticamente.
-    mudaVazao(vazoesLidas,posto=1,mes=1,ano=1931,valor=180)
-
-    # Exemplo 2: Alterando os dados passados de Furnas para valores de teste.
-    for ano in range(vazoesLidas.anoInicial, vazoesLidas.anoFinal+1):
-        for mes in range(1,13):
-            mudaVazao(vazoesLidas,6,mes, ano, mes+ano)
-
-    # Salva arquivos de vazões alterado.
-    salvaArquivo('VAZOES2.txt', vazoesLidas, tipo='vazEdit') 
-    salvaArquivo('VAZOES2.csv', vazoesLidas, tipo='csv') 
-
-    # Exemplo 3: Lendo dados do Excel para alterar o histórico de vazões.
-    vazoesNovas = lerVazoesExcel('pyVazEdit_Excel.xlsx',3,2,13,14)
-
-    for key in vazoesNovas:
-        tmpList = vazoesNovas[key]
-        for sl in tmpList:
-            mudaVazao(vazoesLidas, key, sl[0], sl[1], sl[2]) 
-
-    salvaArquivo('VAZOES3.txt', vazoesLidas,'vazEdit') 
     
    
    
