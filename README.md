@@ -2,7 +2,7 @@
 Código em Python para ler e escrever arquivos binários de vazão utilizados nos modelos Newave, Decomp, Gevazp e Dessem.
 
 
-<img src="figs/pyVazEdit_Exemplo_Excel.png" width="300"> <img src="tests/pyVazEdit_Exemplo4_Camargos.png" width="300"> 
+<img src="figs/pyVazEdit_Exemplo_Excel.png" width="500"> <img src="figs/pyVazEdit_Exemplo4_Camargos.png" width="500"> 
 
 
 ## Utilização:
