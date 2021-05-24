@@ -12,8 +12,9 @@ Modelo de arquivo Excel que o pyVazEdit lê para atualizar um arquivo de vazões
 
 ## Utilização:
 
+...
 Em breve. Mas o arquivo 'pyVazEdit_Tests.py' pode lhe ajudar muito a como utilizar as funções do 'mapLoaders'
-
+...
 
 ## Funções já implementadas:
 
