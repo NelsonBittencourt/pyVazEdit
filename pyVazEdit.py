@@ -8,13 +8,20 @@ Este tipo de arquivo é utilizado nos modelos do setor elétrico brasileiro
               
 
 Autor   : Nelson Rossi Bittencourt
-Versão  : 0.1
+Versão  : 0.111
 Licença : MIT
-Dependências: openpyxl (se desejar ler dados do Excel).
+Dependências: struct e openpyxl (se desejar ler dados do Excel).
+
+TODO: 
+
+    1) criar um método que lê o formato ONS e invoca-lo das demais rotinas.
+    2) criar rotinas para salvar MLTs e Postos?
+
 ******************************************************************************
 """
 
 from openpyxl import load_workbook
+import struct
 
 # Classe que conterá um histórico de vazões.
 # anoInicial : deverá, obrigatoriamente, ser fornecido pelo usuário e corresponderá ao primeiro ano do histórico;
@@ -28,6 +35,11 @@ class historicoVazoes:
         self.numPostos = 0
         self.valores = {}
 
+class postoVazao:
+    def __init__(self):        
+        self.nomePosto = ''
+        self.anoInicial = 0
+        self.anoFinal = 0
 
 def lerVazoesExcel(nomeArquivoExcel, linIni, colIni, linFim,colFim):
     """
@@ -96,9 +108,141 @@ def lerVazoesExcel(nomeArquivoExcel, linIni, colIni, linFim,colFim):
 
     return outPut
 
+def lePostos(nomeArquivo):
+    """
+    Lê os dados básicos dos postos de vazão (nome, ano inicial e ano final) de um arquivo binário no 
+    formato ONS.
+    
+    Argumentos
+    ----------
 
-# TODO: Inserir código para ler do formato 'vazEdit' ou 'csv' ?
-def leVazoes(nomeArquivo, anoInicial=1931, numPostos=320):
+    nomeArquivo : nome do arquivo binario de MLTs no formato do ONS.
+    
+    Retorno
+    -------
+
+    Dicionário no formato {número do posto; objeto 'postoVazao'}.
+    
+    """
+    # Dicionário temporário para alocar os resuldados da leitura dos dados.    
+    tmpDict = {}
+    
+    # Contador dos postos.
+    posto = 1
+
+    # Preparação para a leitura dos dados.
+    formatoDados = "=12sii"                                     # Formato dos dados no arquivo
+    tamFormato = struct.calcsize(formatoDados)                  # Tamanho esperado dos dados
+    structUnpack = struct.Struct(formatoDados).unpack_from      # Função para extrair os dados
+    
+    # Abre o arquivo binário de MLTs e aloca seus dados no dicionário temporário.
+    try:        
+        with open(nomeArquivo, 'rb') as f:
+            while (data:=f.read(tamFormato)):                                                                
+                s = structUnpack(data)
+                tmpDict[posto] = postoVazao()                               # Cria objeto 'postoVazao'
+                tmpDict[posto].nomePosto = s[0].strip().decode('latin1')    # Aloca nome do posto
+                tmpDict[posto].anoInicial = s[1]                            # Aloca ano inicial
+                tmpDict[posto].anoFinal = s[2]                              # Aloca ano final
+                posto = posto + 1                                           # Incrementa contador de postos
+                        
+    except:
+        raise NameError("Erro ao abrir arquivo binário de MLTS: {}.".format(nomeArquivo))
+
+    return(tmpDict)
+
+# Função descontinuada. 
+# A versão que utiliza dados estruturados para leitura do arquivo é muito mais eficiente.
+def leMLTS_Old(nomeArquivo, numPostos=320):
+    """
+    Lê os valores binários de MLTs.
+    
+    Argumentos
+    ----------
+
+    nomeArquivo : nome do arquivo binario de MLTs no formato do ONS.
+
+    numeroPostos : (Opcional) número de postos contidos no histórico de vazões. Default: 320.
+        O ONS utiliza 320 postos para o horizonte de operação e 600 postos para o horizonte de planejamento.
+
+    Retorno
+    -------
+
+    Dicionário no formato {posto;[mlt jan, mlt fev, ... mlt dez]}.
+    
+    """
+    # Cria novo dicionário para conter os pares ordenados (posto;mlt).
+    mlts = {}
+
+    for i in range(1,numPostos+1):        
+        mlts[i] = []
+
+    # Contador de postos.
+    posto = 1
+
+    # Abre o arquivo binário de MLTs e aloca seus dados nas listas correspondentes.
+    try:        
+        with open(nomeArquivo, 'rb') as f:
+            while (byte1:=f.read(4)):                                                                
+                tmp = int.from_bytes(byte1,'little')                
+                mlts[posto].append(tmp)
+                posto = posto + 1
+                if (posto==(numPostos+1)): 
+                    posto = 1                       
+    except:
+        raise NameError("Erro ao abrir arquivo binário de MLTS: {}.".format(nomeArquivo))
+
+    return(mlts)
+
+
+def leMLTS(nomeArquivo, numPostos=320):
+    """
+    Lê os valores binários de MLTs.
+    
+    Argumentos
+    ----------
+
+    nomeArquivo : nome do arquivo binario de MLTs no formato do ONS.
+
+    numeroPostos : (Opcional) número de postos contidos no histórico de vazões. Default: 320.
+        O ONS utiliza 320 postos para o horizonte de operação e 600 postos para o horizonte de planejamento.
+
+    Retorno
+    -------
+
+    Dicionário no formato {posto;[mlt jan, mlt fev, ... mlt dez]}.
+    
+    """
+    # Cria novo dicionário para conter os pares ordenados (posto;mlt).
+    mlts = {}
+
+    for i in range(1,numPostos+1):        
+        mlts[i] = []
+
+    # Contador de postos.
+    posto = 1
+
+    # Prepara função para ler estrutura de dados do arquivo.
+    formatoDados = str(int(numPostos)) + "i"                    # Formato dos dados no arquivo        
+    tamFormato = struct.calcsize(formatoDados)                  # Tamanho esperado dos dados
+    structUnpack = struct.Struct(formatoDados).unpack_from      # Função para extrair os dados
+
+    # Abre o arquivo binário de MLTs e aloca seus dados no dicionário correspondente.
+    try:        
+        with open(nomeArquivo, 'rb') as f:
+           while (data:=f.read(tamFormato)):                                                                
+                s = structUnpack(data)
+                for i in range(1,numPostos+1):
+                    mlts[i].append(s[i-1])
+                                 
+    except:
+        raise NameError("Erro ao abrir arquivo binário de MLTS: {}.".format(nomeArquivo))
+
+    return(mlts)
+
+# Função descontinuada.
+# A função que utiliza dados estruturadas é muito mais eficiente.
+def leVazoes_Old(nomeArquivo, anoInicial=1931, numPostos=320):
     """
     Lê todas as vazões de um arquivo binário.
 
@@ -146,10 +290,70 @@ def leVazoes(nomeArquivo, anoInicial=1931, numPostos=320):
                 if (posto==(numPostos+1)): 
                     posto = 1             
     except:
-        raise NameError("Erro ao abrir arquivo binário {}.".format(nomeArquivo))
+        raise NameError("Erro ao abrir arquivo binário de vazões:{}.".format(nomeArquivo))
 
     # Calcula o ano final do arquivo e atribui ao objeto tipo 'historicoVazoes'.
     anoFinal = int((anoInicial + (numRegistros/(12*numPostos)))-1)
+    localVazoesLidas.anoFinal = anoFinal
+    
+    return localVazoesLidas
+
+
+def leVazoes(nomeArquivo, anoInicial=1931, numPostos=320):
+    """
+    Lê todas as vazões de um arquivo binário.
+
+    Argumentos
+    ----------
+
+    nomeArquivo : nome do arquivo binário de vazões no formato CEPEL/ONS;
+
+    anoInicial : (Opcional) ano inicial do histórico de vazões. Default: 1931.
+
+    numeroPostos : (Opcional) número de postos contidos no histórico de vazões. Default: 320.
+        O ONS utiliza 320 postos para o horizonte de operação e 600 postos para o horizonte de planejamento.
+
+    
+    Retorno
+    -------
+
+    Lista de objetos tipo 'historicoVazoes'.
+
+    """
+
+    # Contador do número de registros.
+    numRegistros = 0        
+
+    # Índice do posto.
+    posto = 1
+
+    # Cria uma instância da classe 'historicoVazoes' e atribui valores iniciais.
+    localVazoesLidas = historicoVazoes()    
+    localVazoesLidas.anoInicial = anoInicial
+    localVazoesLidas.numPostos = numPostos
+
+    # Cria listas vazias para conter as vazões.
+    for i in range(1,numPostos+1):        
+        localVazoesLidas.valores[i] = []
+    
+    formatoDados = "=320i"                                     # Formato dos dados no arquivo
+    tamFormato = struct.calcsize(formatoDados)                  # Tamanho esperado dos dados
+    structUnpack = struct.Struct(formatoDados).unpack_from      # Função para extrair os dados
+
+    # Abre o arquivo binário e aloca seus dados nas listas correspondentes.
+    try:        
+        with open(nomeArquivo, 'rb') as f:
+             while (data:=f.read(tamFormato)):                                                                
+                s = structUnpack(data)
+                numRegistros = numRegistros + 1
+                for i in range(1,numPostos+1):
+                    localVazoesLidas.valores[i].append(s[i-1])
+                
+    except:
+        raise NameError("Erro ao abrir arquivo binário de vazões:{}.".format(nomeArquivo))
+
+    # Calcula o ano final do arquivo e atribui ao objeto tipo 'historicoVazoes'.
+    anoFinal = int((anoInicial + (numRegistros/12))-1)
     localVazoesLidas.anoFinal = anoFinal
     
     return localVazoesLidas

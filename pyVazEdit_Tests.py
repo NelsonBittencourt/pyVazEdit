@@ -5,7 +5,7 @@
 Exemplos de uso do 'pyVazEdit'.
 
 Autor   : Nelson Rossi Bittencourt
-Versão  : 0.1
+Versão  : 0.111
 Licença : MIT
 Dependências: pyVazEdit
 ******************************************************************************
@@ -13,11 +13,26 @@ Dependências: pyVazEdit
 
 import pyVazEdit as pVE
 
+
 if __name__ == '__main__':
 
+
+    # Lê os dados básicos dos postos de vazão do arquivo binário no formato ONS.
+    meusPostos = pVE.lePostos(nomeArquivo='tests/POSTOS.DAT')
+
+    # Número de postos lidos.
+    numPostos = len(meusPostos)
+    
+    # Lê os valores de MLT mensais por posto de um arquivo binário do ONS.
+    # A método 'leMLTs' retorna um dicionário no formato {número do posto;[MLT Jan, MLT Fev, ... MLT Dez]}.    
+    # O argumento 'numPostos' é opcional, com valor padrão de 320.    
+    minhasMLTs = pVE.leMLTS(nomeArquivo='tests/MLT.DAT',numPostos=numPostos)
+    
+
     # Lê os dados de um arquivo binário para um objeto tipo 'historicoVazoes' (ver definição da classe
-    # no código fonte do 'pyVazEdit').
-    meuHistVazoes = pVE.leVazoes(nomeArquivo='tests/vazoes_original_ONS.dat', anoInicial=1931, numPostos=320)
+    # no código fonte do 'pyVazEdit').       
+    meuHistVazoes = pVE.leVazoes(nomeArquivo='tests/vazoes_original_ONS.dat', anoInicial=1931, numPostos=numPostos)
+    
 
     # Se desejar, pode utilizar algumas informações do objeto 'historicoVazoes' ou
     # até mesmo, utilizar códigos diferentes alterar os valores do dicionário de vazões.
@@ -65,7 +80,7 @@ if __name__ == '__main__':
 
 
     # Exemplo 4: Reabre o arquivo original do ONS, calcula o valor médio das vazões 
-    # de Camargos e lança esse valor para 2022.
+    # de Camargos (MLT Anual) lança esse valor para 2022.
     meuHistVazoes = pVE.leVazoes(nomeArquivo='tests/vazoes_original_ONS.dat')
 
     aux = meuHistVazoes.valores[1]
@@ -74,6 +89,10 @@ if __name__ == '__main__':
 
     for m in range(1,13):
         pVE.mudaVazao(meuHistVazoes,1,m,2022,mltCamargos)
+
+    # Vamos inserir em 2023 os as MLTs mensais de Camargos (obtidas do arquivo 'MLT.dat').    
+    for m in range(1,13):
+        pVE.mudaVazao(meuHistVazoes,1,m,2023,minhasMLTs[1][m-1])
     
     pVE.salvaArquivo(
                     nomeArquivo="tests/vazoes_ex_04.txt",
