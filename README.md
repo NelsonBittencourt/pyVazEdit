@@ -1,4 +1,4 @@
-# pyVazEdit
+# pyVazEdit versão 0.111
 Código em Python para ler e escrever arquivos binários de vazão utilizados nos modelos Newave, Decomp, Gevazp e Dessem.
 
 Dados inseridos pelo pyVazEdit para o posto Camargos (ano 2021):
